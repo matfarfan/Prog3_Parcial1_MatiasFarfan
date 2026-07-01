@@ -1,6 +1,6 @@
 import type { Rol } from "../../../types/Rol";
 import { USERS } from "../../../data/data";
-import { navigate } from "../../../utils/navigate";
+
 
 interface RegisteredUser {
   id: number;
