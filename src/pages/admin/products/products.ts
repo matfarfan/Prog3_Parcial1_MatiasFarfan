@@ -1,6 +1,27 @@
 import { PRODUCTS, getCategories } from "../../../data/data";
 import { logout, checkAuthUser } from "../../../utils/auth";
 
+interface Category {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  eliminado: boolean;
+  createdAt: string;
+}
+
+interface Product {
+  id: number;
+  eliminado: boolean;
+  createdAt: string;
+  nombre: string;
+  precio: number;
+  descripcion: string;
+  stock: number;
+  imagen: string;
+  disponible: boolean;
+  categorias: Category[];
+}
+
 const productsContainer = document.getElementById("products-container");
 const buttonLogout = document.getElementById("logoutButton") as HTMLButtonElement;
 
@@ -11,13 +32,27 @@ const closeProductModal = document.getElementById("close-product-modal");
 const productForm = document.getElementById("product-form") as HTMLFormElement;
 const productIdInput = document.getElementById("product-id") as HTMLInputElement;
 const productNameInput = document.getElementById("product-name") as HTMLInputElement;
-const productDescriptionInput = document.getElementById("product-description") as HTMLTextAreaElement;
-const productPriceInput = document.getElementById("product-price") as HTMLInputElement;
-const productStockInput = document.getElementById("product-stock") as HTMLInputElement;
-const productImageInput = document.getElementById("product-image") as HTMLInputElement;
-const productCategorySelect = document.getElementById("product-category") as HTMLSelectElement;
-const productAvailableInput = document.getElementById("product-available") as HTMLInputElement;
-const productModalTitle = document.getElementById("product-modal-title") as HTMLHeadingElement;
+const productDescriptionInput = document.getElementById(
+  "product-description"
+) as HTMLTextAreaElement;
+const productPriceInput = document.getElementById(
+  "product-price"
+) as HTMLInputElement;
+const productStockInput = document.getElementById(
+  "product-stock"
+) as HTMLInputElement;
+const productImageInput = document.getElementById(
+  "product-image"
+) as HTMLInputElement;
+const productCategorySelect = document.getElementById(
+  "product-category"
+) as HTMLSelectElement;
+const productAvailableInput = document.getElementById(
+  "product-available"
+) as HTMLInputElement;
+const productModalTitle = document.getElementById(
+  "product-modal-title"
+) as HTMLHeadingElement;
 
 buttonLogout?.addEventListener("click", () => {
   logout();
@@ -64,19 +99,19 @@ productForm?.addEventListener("submit", (event) => {
   const storedProducts = getStoredProducts();
   const allProducts = getAllProducts();
 
-  const existe = allProducts.some(
-    (product: any) =>
+  const exists = allProducts.some(
+    (product: Product) =>
       product.nombre.toLowerCase() === nombre.toLowerCase() &&
       product.id !== editingId
   );
 
-  if (existe) {
+  if (exists) {
     alert("Ya existe un producto con ese nombre.");
     return;
   }
 
-  const categoria = getCategories().find(
-    (category: any) => category.id === categoriaId
+  const categoria = getAllCategories().find(
+    (category: Category) => category.id === categoriaId
   );
 
   if (!categoria) {
@@ -85,8 +120,8 @@ productForm?.addEventListener("submit", (event) => {
   }
 
   if (editingId) {
-    const productToEdit = getAllProducts().find(
-      (product: any) => product.id === editingId
+    const productToEdit = allProducts.find(
+      (product: Product) => product.id === editingId
     );
 
     if (!productToEdit) {
@@ -95,13 +130,13 @@ productForm?.addEventListener("submit", (event) => {
     }
 
     const existsInStorage = storedProducts.some(
-      (product: any) => product.id === editingId
+      (product: Product) => product.id === editingId
     );
 
-    let updatedProducts;
+    let updatedProducts: Product[];
 
     if (existsInStorage) {
-      updatedProducts = storedProducts.map((product: any) => {
+      updatedProducts = storedProducts.map((product: Product) => {
         if (product.id === editingId) {
           return {
             ...product,
@@ -143,7 +178,7 @@ productForm?.addEventListener("submit", (event) => {
     return;
   }
 
-  const newProduct = {
+  const newProduct: Product = {
     id: Date.now(),
     eliminado: false,
     createdAt: new Date().toISOString(),
@@ -173,7 +208,9 @@ checkAuthUser(
 
 loadCategoryOptions();
 
-const products = getAllProducts().filter((product: any) => !product.eliminado);
+const products = getAllProducts().filter(
+  (product: Product) => !product.eliminado
+);
 
 if (productsContainer) {
   productsContainer.innerHTML = `
@@ -195,7 +232,7 @@ if (productsContainer) {
       <tbody>
         ${products
           .map(
-            (product: any) => `
+            (product: Product) => `
               <tr>
                 <td>${product.id}</td>
                 <td>
@@ -211,7 +248,11 @@ if (productsContainer) {
                 <td>${getProductCategoryName(product)}</td>
                 <td>${product.stock}</td>
                 <td>
-                  <span class="${product.disponible ? "status-badge available" : "status-badge unavailable"}">
+                  <span class="${
+                    product.disponible
+                      ? "status-badge available"
+                      : "status-badge unavailable"
+                  }">
                     ${product.disponible ? "Disponible" : "No disponible"}
                   </span>
                 </td>
@@ -239,7 +280,9 @@ editProductButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const productId = Number((button as HTMLButtonElement).dataset.id);
 
-    const product = getAllProducts().find((p: any) => p.id === productId);
+    const product = getAllProducts().find(
+      (product: Product) => product.id === productId
+    );
 
     if (!product) {
       alert("No se encontró el producto.");
@@ -270,7 +313,9 @@ deleteProductButtons.forEach((button) => {
   button.addEventListener("click", () => {
     const productId = Number((button as HTMLButtonElement).dataset.id);
 
-    const product = getAllProducts().find((p: any) => p.id === productId);
+    const product = getAllProducts().find(
+      (product: Product) => product.id === productId
+    );
 
     if (!product) {
       alert("No se encontró el producto.");
@@ -288,13 +333,13 @@ deleteProductButtons.forEach((button) => {
     const storedProducts = getStoredProducts();
 
     const existsInStorage = storedProducts.some(
-      (storedProduct: any) => storedProduct.id === productId
+      (storedProduct: Product) => storedProduct.id === productId
     );
 
-    let updatedProducts;
+    let updatedProducts: Product[];
 
     if (existsInStorage) {
-      updatedProducts = storedProducts.map((storedProduct: any) => {
+      updatedProducts = storedProducts.map((storedProduct: Product) => {
         if (storedProduct.id === productId) {
           return {
             ...storedProduct,
@@ -324,14 +369,14 @@ deleteProductButtons.forEach((button) => {
 
 function loadCategoryOptions() {
   const categories = getAllCategories().filter(
-    (category: any) => !category.eliminado
+    (category: Category) => !category.eliminado
   );
 
   productCategorySelect.innerHTML = `
     <option value="">Seleccione una categoría</option>
     ${categories
       .map(
-        (category: any) => `
+        (category: Category) => `
           <option value="${category.id}">
             ${category.nombre}
           </option>
@@ -341,36 +386,38 @@ function loadCategoryOptions() {
   `;
 }
 
-function getStoredProducts() {
+function getStoredProducts(): Product[] {
   const storedProducts = localStorage.getItem("adminProducts");
-  return storedProducts ? JSON.parse(storedProducts) : [];
+  return storedProducts ? (JSON.parse(storedProducts) as Product[]) : [];
 }
 
-function saveStoredProducts(products: any[]) {
+function saveStoredProducts(products: Product[]) {
   localStorage.setItem("adminProducts", JSON.stringify(products));
 }
 
-function getAllProducts() {
-  const dataProducts = PRODUCTS;
+function getAllProducts(): Product[] {
+  const dataProducts = PRODUCTS as Product[];
   const storedProducts = getStoredProducts();
 
-  const mergedProducts = dataProducts.map((dataProduct: any) => {
+  const mergedProducts = dataProducts.map((dataProduct: Product) => {
     const editedProduct = storedProducts.find(
-      (storedProduct: any) => storedProduct.id === dataProduct.id
+      (storedProduct: Product) => storedProduct.id === dataProduct.id
     );
 
     return editedProduct ? editedProduct : dataProduct;
   });
 
   const newProducts = storedProducts.filter(
-    (storedProduct: any) =>
-      !dataProducts.some((dataProduct: any) => dataProduct.id === storedProduct.id)
+    (storedProduct: Product) =>
+      !dataProducts.some(
+        (dataProduct: Product) => dataProduct.id === storedProduct.id
+      )
   );
 
   return [...mergedProducts, ...newProducts];
 }
 
-function getProductCategoryName(product: any) {
+function getProductCategoryName(product: Product) {
   const category = product.categorias?.[0];
 
   if (!category) {
@@ -386,26 +433,28 @@ function getProductImagePath(imageName: string) {
   return `../../../assets/images/${imageNameWithUppercaseExtension}`;
 }
 
-function getStoredCategories() {
+function getStoredCategories(): Category[] {
   const storedCategories = localStorage.getItem("adminCategories");
-  return storedCategories ? JSON.parse(storedCategories) : [];
+  return storedCategories ? (JSON.parse(storedCategories) as Category[]) : [];
 }
 
-function getAllCategories() {
-  const dataCategories = getCategories();
+function getAllCategories(): Category[] {
+  const dataCategories = getCategories() as Category[];
   const storedCategories = getStoredCategories();
 
-  const mergedCategories = dataCategories.map((dataCategory: any) => {
+  const mergedCategories = dataCategories.map((dataCategory: Category) => {
     const editedCategory = storedCategories.find(
-      (storedCategory: any) => storedCategory.id === dataCategory.id
+      (storedCategory: Category) => storedCategory.id === dataCategory.id
     );
 
     return editedCategory ? editedCategory : dataCategory;
   });
 
   const newCategories = storedCategories.filter(
-    (storedCategory: any) =>
-      !dataCategories.some((dataCategory: any) => dataCategory.id === storedCategory.id)
+    (storedCategory: Category) =>
+      !dataCategories.some(
+        (dataCategory: Category) => dataCategory.id === storedCategory.id
+      )
   );
 
   return [...mergedCategories, ...newCategories];
@@ -426,4 +475,3 @@ function truncateText(text: string, maxLength: number) {
 
   return text.substring(0, maxLength) + "...";
 }
-
