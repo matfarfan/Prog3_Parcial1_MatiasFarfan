@@ -2,7 +2,26 @@ import { checkAuthUser, logout } from "../../../utils/auth";
 import { PRODUCTS, getCategories } from "../../../data/data";
 import { getAllOrders } from "../../../utils/pedidoService";
 
+interface Category {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  eliminado: boolean;
+  createdAt: string;
+}
 
+interface Product {
+  id: number;
+  eliminado: boolean;
+  createdAt: string;
+  nombre: string;
+  precio: number;
+  descripcion: string;
+  stock: number;
+  imagen: string;
+  disponible: boolean;
+  categorias: Category[];
+}
 
 const buttonLogout = document.getElementById(
   "logoutButton"
@@ -13,7 +32,6 @@ buttonLogout?.addEventListener("click", () => {
 });
 
 const initPage = () => {
-  console.log("inicio de pagina");
   checkAuthUser(
     "/src/pages/auth/login/login.html",
     "/src/pages/admin/home/home.html",
@@ -33,16 +51,16 @@ const processingOrders = document.getElementById("processing-orders");
 const completedOrders = document.getElementById("completed-orders");
 
 const categories = getAllCategories().filter(
-  (category: any) => !category.eliminado
+  (category: Category) => !category.eliminado
 );
 const pedidos = getAllOrders();
 
 const products = getAllProducts().filter(
-  (product: any) => !product.eliminado
+  (product: Product) => !product.eliminado
 );
 
 const productosDisponibles = products.filter(
-  (product: any) => product.disponible
+  (product: Product) => product.disponible
 );
 
 if (totalCategories) {
@@ -97,54 +115,54 @@ if (completedOrders) {
   completedOrders.textContent = String(pedidosCompletados.length);
 }
 
-function getStoredCategories() {
+function getStoredCategories(): Category[] {
   const storedCategories = localStorage.getItem("adminCategories");
-  return storedCategories ? JSON.parse(storedCategories) : [];
+  return storedCategories ? (JSON.parse(storedCategories) as Category[]) : [];
 }
 
-function getAllCategories() {
-  const dataCategories = getCategories();
+function getAllCategories(): Category[] {
+  const dataCategories = getCategories() as Category[];
   const storedCategories = getStoredCategories();
 
-  const mergedCategories = dataCategories.map((dataCategory: any) => {
+  const mergedCategories = dataCategories.map((dataCategory: Category) => {
     const editedCategory = storedCategories.find(
-      (storedCategory: any) => storedCategory.id === dataCategory.id
+      (storedCategory: Category) => storedCategory.id === dataCategory.id
     );
 
     return editedCategory ? editedCategory : dataCategory;
   });
 
   const newCategories = storedCategories.filter(
-    (storedCategory: any) =>
+    (storedCategory: Category) =>
       !dataCategories.some(
-        (dataCategory: any) => dataCategory.id === storedCategory.id
+        (dataCategory: Category) => dataCategory.id === storedCategory.id
       )
   );
 
   return [...mergedCategories, ...newCategories];
 }
 
-function getStoredProducts() {
+function getStoredProducts(): Product[] {
   const storedProducts = localStorage.getItem("adminProducts");
-  return storedProducts ? JSON.parse(storedProducts) : [];
+  return storedProducts ? (JSON.parse(storedProducts) as Product[]) : [];
 }
 
-function getAllProducts() {
-  const dataProducts = PRODUCTS;
+function getAllProducts(): Product[] {
+  const dataProducts = PRODUCTS as Product[];
   const storedProducts = getStoredProducts();
 
-  const mergedProducts = dataProducts.map((dataProduct: any) => {
+  const mergedProducts = dataProducts.map((dataProduct: Product) => {
     const editedProduct = storedProducts.find(
-      (storedProduct: any) => storedProduct.id === dataProduct.id
+      (storedProduct: Product) => storedProduct.id === dataProduct.id
     );
 
     return editedProduct ? editedProduct : dataProduct;
   });
 
   const newProducts = storedProducts.filter(
-    (storedProduct: any) =>
+    (storedProduct: Product) =>
       !dataProducts.some(
-        (dataProduct: any) => dataProduct.id === storedProduct.id
+        (dataProduct: Product) => dataProduct.id === storedProduct.id
       )
   );
 
