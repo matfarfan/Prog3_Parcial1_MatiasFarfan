@@ -1,6 +1,14 @@
 import { getCategories } from "../../../data/data";
 import { logout, checkAuthUser } from "../../../utils/auth";
 
+interface Category {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  eliminado: boolean;
+  createdAt: string;
+}
+
 const categoriesContainer = document.getElementById("categories-container");
 const buttonLogout = document.getElementById("logoutButton") as HTMLButtonElement;
 
@@ -56,21 +64,21 @@ categoryForm?.addEventListener("submit", (event) => {
   const storedCategories = getStoredCategories();
   const allCategories = getAllCategories();
 
-  const existe = allCategories.some(
-    (category: any) =>
+  const exists = allCategories.some(
+    (category: Category) =>
       category.nombre.toLowerCase() === nombre.toLowerCase() &&
       category.id !== editingId &&
       !category.eliminado
   );
 
-  if (existe) {
+  if (exists) {
     alert("Ya existe una categoría con ese nombre.");
     return;
   }
 
   if (editingId !== null) {
     const categoryToEdit = allCategories.find(
-      (category: any) => category.id === editingId
+      (category: Category) => category.id === editingId
     );
 
     if (!categoryToEdit) {
@@ -79,11 +87,11 @@ categoryForm?.addEventListener("submit", (event) => {
     }
 
     const existsInStorage = storedCategories.some(
-      (category: any) => category.id === editingId
+      (category: Category) => category.id === editingId
     );
 
     const updatedCategories = existsInStorage
-      ? storedCategories.map((category: any) => {
+      ? storedCategories.map((category: Category) => {
           if (category.id === editingId) {
             return {
               ...category,
@@ -114,12 +122,12 @@ categoryForm?.addEventListener("submit", (event) => {
   }
 
   const realIds = allCategories
-    .map((category: any) => Number(category.id))
+    .map((category: Category) => Number(category.id))
     .filter((id: number) => Number.isFinite(id) && id < 1000);
 
   const nextId = realIds.length > 0 ? Math.max(...realIds) + 1 : 1;
 
-  const newCategory = {
+  const newCategory: Category = {
     id: nextId,
     eliminado: false,
     createdAt: new Date().toISOString(),
@@ -143,7 +151,7 @@ checkAuthUser(
 );
 
 const categories = getAllCategories().filter(
-  (category: any) => !category.eliminado
+  (category: Category) => !category.eliminado
 );
 
 if (categoriesContainer) {
@@ -161,7 +169,7 @@ if (categoriesContainer) {
       <tbody>
         ${categories
           .map(
-            (category: any) => `
+            (category: Category) => `
               <tr>
                 <td>${category.id}</td>
                 <td>${category.nombre}</td>
@@ -191,7 +199,7 @@ editCategoryButtons.forEach((button) => {
     const categoryId = Number((button as HTMLButtonElement).dataset.id);
 
     const category = getAllCategories().find(
-      (category: any) => category.id === categoryId
+      (category: Category) => category.id === categoryId
     );
 
     if (!category) {
@@ -215,7 +223,7 @@ deleteCategoryButtons.forEach((button) => {
     const categoryId = Number((button as HTMLButtonElement).dataset.id);
 
     const category = getAllCategories().find(
-      (category: any) => category.id === categoryId
+      (category: Category) => category.id === categoryId
     );
 
     if (!category) {
@@ -234,11 +242,11 @@ deleteCategoryButtons.forEach((button) => {
     const storedCategories = getStoredCategories();
 
     const existsInStorage = storedCategories.some(
-      (storedCategory: any) => storedCategory.id === categoryId
+      (storedCategory: Category) => storedCategory.id === categoryId
     );
 
     const updatedCategories = existsInStorage
-      ? storedCategories.map((storedCategory: any) => {
+      ? storedCategories.map((storedCategory: Category) => {
           if (storedCategory.id === categoryId) {
             return {
               ...storedCategory,
@@ -264,31 +272,31 @@ deleteCategoryButtons.forEach((button) => {
   });
 });
 
-function getStoredCategories() {
+function getStoredCategories(): Category[] {
   const storedCategories = localStorage.getItem("adminCategories");
-  return storedCategories ? JSON.parse(storedCategories) : [];
+  return storedCategories ? JSON.parse(storedCategories) as Category[] : [];
 }
 
-function saveStoredCategories(categories: any[]) {
+function saveStoredCategories(categories: Category[]) {
   localStorage.setItem("adminCategories", JSON.stringify(categories));
 }
 
-function getAllCategories() {
-  const dataCategories = getCategories();
+function getAllCategories(): Category[] {
+  const dataCategories = getCategories() as Category[];
   const storedCategories = getStoredCategories();
 
-  const mergedCategories = dataCategories.map((dataCategory: any) => {
+  const mergedCategories = dataCategories.map((dataCategory: Category) => {
     const editedCategory = storedCategories.find(
-      (storedCategory: any) => storedCategory.id === dataCategory.id
+      (storedCategory: Category) => storedCategory.id === dataCategory.id
     );
 
     return editedCategory ? editedCategory : dataCategory;
   });
 
   const newCategories = storedCategories.filter(
-    (storedCategory: any) =>
+    (storedCategory: Category) =>
       !dataCategories.some(
-        (dataCategory: any) => dataCategory.id === storedCategory.id
+        (dataCategory: Category) => dataCategory.id === storedCategory.id
       )
   );
 
