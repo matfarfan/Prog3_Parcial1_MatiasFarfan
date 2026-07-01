@@ -1,6 +1,27 @@
 import { PEDIDOS, PRODUCTS } from "../../../data/data";
 import type { Order, OrderDetail } from "../../../types/orders";
+import type { EstadoPedido } from "../../../types/EstadoPedido";
+import type { FormaPago } from "../../../types/FormaPago";
 import { logout, checkAuthUser } from "../../../utils/auth";
+
+type ClientOrderDetail = {
+  productoId: number;
+  cantidad: number;
+  subtotal: number;
+};
+
+type ClientOrder = {
+  id: number;
+  fecha: string;
+  estado: string;
+  total: number;
+  formaPago: string;
+  usuarioNombre?: string;
+  usuarioApellido?: string;
+  usuarioEmail?: string;
+  usuarioCelular?: string;
+  detalles: ClientOrderDetail[];
+};
 
 const statusModal = document.getElementById("status-modal");
 const closeStatusModal = document.getElementById("close-status-modal");
@@ -170,8 +191,8 @@ function getOrderProductQuantity(order: Order) {
   return order.detalles.reduce((total, detail) => total + detail.cantidad, 0);
 }
 
-function getOrderStatusText(status: string) {
-  const statusText: Record<string, string> = {
+function getOrderStatusText(status: EstadoPedido) {
+  const statusText: Partial<Record<EstadoPedido, string>> = {
     PENDIENTE: "Pendiente",
     EN_PREPARACION: "En preparación",
     ENTREGADO: "Entregado",
@@ -181,8 +202,8 @@ function getOrderStatusText(status: string) {
   return statusText[status] || status;
 }
 
-function getOrderStatusClass(status: string) {
-  const statusClass: Record<string, string> = {
+function getOrderStatusClass(status: EstadoPedido) {
+  const statusClass: Partial<Record<EstadoPedido, string>> = {
     PENDIENTE: "pending",
     EN_PREPARACION: "processing",
     ENTREGADO: "available",
@@ -192,15 +213,14 @@ function getOrderStatusClass(status: string) {
   return statusClass[status] || "pending";
 }
 
-function formatPaymentMethod(paymentMethod: string) {
-  const paymentMethods: Record<string, string> = {
+function formatPaymentMethod(paymentMethod: FormaPago) {
+  const paymentMethods: Record<FormaPago, string> = {
     EFECTIVO: "Efectivo",
     TARJETA: "Tarjeta",
-    MERCADO_PAGO: "Mercado Pago",
     TRANSFERENCIA: "Transferencia",
   };
 
-  return paymentMethods[paymentMethod] || paymentMethod;
+  return paymentMethods[paymentMethod];
 }
 
 function renderOrderDetail(order: Order) {
@@ -286,7 +306,7 @@ function changeOrderStatus(order: Order) {
     statusModalText.innerHTML = `
       Pedido #${order.id}<br>
       Estado actual: <strong>${getOrderStatusText(order.estado)}</strong><br>
-      Próximo estado: <strong>${getOrderStatusText(nextStatus ?? "")}</strong>
+      Próximo estado: <strong>${nextStatus ? getOrderStatusText(nextStatus) : ""}</strong>
     `;
   }
 
@@ -329,7 +349,7 @@ statusModal?.addEventListener("click", (event) => {
   }
 });
 
-function saveOrderStatus(orderId: number, newStatus: string) {
+function saveOrderStatus(orderId: number, newStatus: EstadoPedido) {
   const updatedOrders = orders.map((currentOrder: Order) => {
     if (currentOrder.id === orderId) {
       return {
@@ -347,8 +367,8 @@ function saveOrderStatus(orderId: number, newStatus: string) {
   location.reload();
 }
 
-function getNextOrderStatus(status: string) {
-  const statusFlow: Record<string, string | null> = {
+function getNextOrderStatus(status: EstadoPedido): EstadoPedido | null {
+  const statusFlow: Partial<Record<EstadoPedido, EstadoPedido | null>> = {
     PENDIENTE: "EN_PREPARACION",
     EN_PREPARACION: "ENTREGADO",
     ENTREGADO: null,
@@ -360,14 +380,16 @@ function getNextOrderStatus(status: string) {
 
 function getStoredOrders(): Order[] {
   const storedOrders = localStorage.getItem("adminOrders");
-  return storedOrders ? JSON.parse(storedOrders) : [];
+  return storedOrders ? (JSON.parse(storedOrders) as Order[]) : [];
 }
 
 function getClientOrders(): Order[] {
   const storedClientOrders = localStorage.getItem("pedidos");
-  const clientOrders = storedClientOrders ? JSON.parse(storedClientOrders) : [];
+  const clientOrders = storedClientOrders
+    ? (JSON.parse(storedClientOrders) as ClientOrder[])
+    : [];
 
-  return clientOrders.map((pedido: any) => ({
+  return clientOrders.map((pedido: ClientOrder) => ({
     id: pedido.id,
     fecha: pedido.fecha,
     estado: mapClientStatusToAdminStatus(pedido.estado),
@@ -375,13 +397,15 @@ function getClientOrders(): Order[] {
     formaPago: mapClientPaymentToAdminPayment(pedido.formaPago),
 
     usuarioDto: {
+      id: 0,
       nombre: pedido.usuarioNombre || "Cliente",
       apellido: pedido.usuarioApellido || "",
       mail: pedido.usuarioEmail || "Sin email",
       celular: pedido.usuarioCelular || "Sin celular",
+      rol: "client",
     },
 
-    detalles: pedido.detalles.map((detalle: any) => {
+    detalles: pedido.detalles.map((detalle: ClientOrderDetail) => {
       const product = PRODUCTS.find((product) => product.id === detalle.productoId);
 
       return {
@@ -399,7 +423,6 @@ function getClientOrders(): Order[] {
             id: 0,
             nombre: "Sin categoría",
             descripcion: "",
-            eliminado: false,
           },
         },
       };
@@ -413,17 +436,15 @@ function getAllOrders(): Order[] {
 
   const ordersMap = new Map<number, Order>();
 
-  // 1. Pedidos de prueba
+  // El orden permite que los pedidos modificados por el admin reemplacen a los originales.
   PEDIDOS.forEach((order) => {
     ordersMap.set(order.id, order);
   });
 
-  // 2. Pedidos del cliente
   clientOrders.forEach((order) => {
     ordersMap.set(order.id, order);
   });
 
-  // 3. Si el admin modificó un pedido, reemplaza al anterior
   storedOrders.forEach((order) => {
     ordersMap.set(order.id, order);
   });
@@ -433,8 +454,8 @@ function getAllOrders(): Order[] {
   );
 }
 
-function mapClientStatusToAdminStatus(status: string): string {
-  const statusMap: Record<string, string> = {
+function mapClientStatusToAdminStatus(status: string): EstadoPedido {
+  const statusMap: Record<string, EstadoPedido> = {
     pending: "PENDIENTE",
     processing: "EN_PREPARACION",
     completed: "ENTREGADO",
@@ -444,29 +465,30 @@ function mapClientStatusToAdminStatus(status: string): string {
   return statusMap[status] || "PENDIENTE";
 }
 
-function mapClientPaymentToAdminPayment(payment: string): string {
-  const paymentMap: Record<string, string> = {
+function mapClientPaymentToAdminPayment(payment: string): FormaPago {
+  const paymentMap: Record<string, FormaPago> = {
     efectivo: "EFECTIVO",
     tarjeta: "TARJETA",
-    mercado_pago: "MERCADO_PAGO",
     transferencia: "TRANSFERENCIA",
     Efectivo: "EFECTIVO",
     Tarjeta: "TARJETA",
-    "Mercado Pago": "MERCADO_PAGO",
     Transferencia: "TRANSFERENCIA",
   };
 
-  return paymentMap[payment] || payment;
+  return paymentMap[payment] || "EFECTIVO";
 }
 
-function updateClientOrderStatus(orderId: number, adminStatus: string): void {
+function updateClientOrderStatus(
+  orderId: number,
+  adminStatus: EstadoPedido
+): void {
   const storedClientOrders = localStorage.getItem("pedidos");
 
   if (!storedClientOrders) return;
 
-  const clientOrders = JSON.parse(storedClientOrders);
+  const clientOrders = JSON.parse(storedClientOrders) as ClientOrder[];
 
-  const updatedClientOrders = clientOrders.map((pedido: any) => {
+  const updatedClientOrders = clientOrders.map((pedido: ClientOrder) => {
     if (pedido.id === orderId) {
       return {
         ...pedido,
@@ -480,8 +502,8 @@ function updateClientOrderStatus(orderId: number, adminStatus: string): void {
   localStorage.setItem("pedidos", JSON.stringify(updatedClientOrders));
 }
 
-function mapAdminStatusToClientStatus(status: string): string {
-  const statusMap: Record<string, string> = {
+function mapAdminStatusToClientStatus(status: EstadoPedido): string {
+  const statusMap: Partial<Record<EstadoPedido, string>> = {
     PENDIENTE: "pending",
     EN_PREPARACION: "processing",
     ENTREGADO: "completed",
